@@ -11,9 +11,7 @@ abstract class Room {
         this.price = price;
     }
 
-    public String getType() {
-        return type;
-    }
+    public String getType() { return type; }
 
     public abstract void display();
 }
@@ -35,11 +33,7 @@ class SuiteRoom extends Room {
 
 class RoomInventory {
 
-    private HashMap<String, Integer> inventory;
-
-    public RoomInventory() {
-        inventory = new HashMap<>();
-    }
+    private HashMap<String, Integer> inventory = new HashMap<>();
 
     public void addRoom(String type, int count) {
         inventory.put(type, count);
@@ -48,14 +42,23 @@ class RoomInventory {
     public int getAvailability(String type) {
         return inventory.getOrDefault(type, 0);
     }
+}
 
-    public void updateAvailability(String type, int change) {
-        inventory.put(type, getAvailability(type) + change);
+class SearchService {
+
+    private RoomInventory inventory;
+
+    public SearchService(RoomInventory inventory) {
+        this.inventory = inventory;
     }
 
-    public void displayInventory() {
-        for (Map.Entry<String, Integer> e : inventory.entrySet()) {
-            System.out.println(e.getKey() + " Available: " + e.getValue());
+    public void search(List<Room> rooms) {
+        for (Room r : rooms) {
+            int available = inventory.getAvailability(r.getType());
+            if (available > 0) {
+                r.display();
+                System.out.println("Available: " + available);
+            }
         }
     }
 }
@@ -64,22 +67,20 @@ public class BookMyStay {
 
     public static void main(String[] args) {
 
-        Room r1 = new SingleRoom();
-        Room r2 = new DoubleRoom();
-        Room r3 = new SuiteRoom();
+        List<Room> rooms = Arrays.asList(
+                new SingleRoom(),
+                new DoubleRoom(),
+                new SuiteRoom()
+        );
 
         RoomInventory inv = new RoomInventory();
+        inv.addRoom("Single", 5);
+        inv.addRoom("Double", 0);
+        inv.addRoom("Suite", 2);
 
-        inv.addRoom(r1.getType(), 5);
-        inv.addRoom(r2.getType(), 3);
-        inv.addRoom(r3.getType(), 2);
+        SearchService service = new SearchService(inv);
 
-        System.out.println("=== Inventory ===");
-        inv.displayInventory();
-
-        inv.updateAvailability("Single", -1);
-
-        System.out.println("=== After Booking ===");
-        inv.displayInventory();
+        System.out.println("=== Available Rooms ===");
+        service.search(rooms);
     }
 }
