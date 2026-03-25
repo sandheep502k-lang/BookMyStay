@@ -1,48 +1,49 @@
 import java.util.*;
 
-class Reservation {
-    String reservationId;
-    String guestName;
-    String roomType;
-
-    public Reservation(String reservationId, String guestName, String roomType) {
-        this.reservationId = reservationId;
-        this.guestName = guestName;
-        this.roomType = roomType;
+class InvalidBookingException extends Exception {
+    public InvalidBookingException(String msg) {
+        super(msg);
     }
 }
 
-class BookingHistory {
+class RoomInventory {
 
-    private List<Reservation> history = new ArrayList<>();
+    private Map<String, Integer> inventory = new HashMap<>();
 
-    public void add(Reservation r) {
-        history.add(r);
+    public void addRoom(String type, int count) {
+        inventory.put(type, count);
     }
 
-    public List<Reservation> getAll() {
-        return history;
+    public int getAvailability(String type) throws InvalidBookingException {
+        if (!inventory.containsKey(type))
+            throw new InvalidBookingException("Invalid room type: " + type);
+        return inventory.get(type);
+    }
+
+    public void bookRoom(String type) throws InvalidBookingException {
+        int available = getAvailability(type);
+
+        if (available <= 0)
+            throw new InvalidBookingException("No rooms available for: " + type);
+
+        inventory.put(type, available - 1);
     }
 }
 
-class BookingReportService {
+class BookingService {
 
-    public void showAll(List<Reservation> list) {
-        for (Reservation r : list) {
-            System.out.println(r.reservationId + " | " + r.guestName + " | " + r.roomType);
-        }
+    private RoomInventory inventory;
+
+    public BookingService(RoomInventory inventory) {
+        this.inventory = inventory;
     }
 
-    public void summary(List<Reservation> list) {
-        Map<String, Integer> count = new HashMap<>();
-
-        for (Reservation r : list) {
-            count.put(r.roomType, count.getOrDefault(r.roomType, 0) + 1);
-        }
-
-        System.out.println("=== Summary ===");
-        for (String k : count.keySet()) {
-            System.out.println(k + " bookings: " + count.get(k));
+    public void process(String guest, String roomType) {
+        try {
+            inventory.bookRoom(roomType);
+            System.out.println("Booking Confirmed: " + guest + " -> " + roomType);
+        } catch (InvalidBookingException e) {
+            System.out.println("Booking Failed: " + e.getMessage());
         }
     }
 }
@@ -51,15 +52,14 @@ public class BookMyStay {
 
     public static void main(String[] args) {
 
-        BookingHistory history = new BookingHistory();
+        RoomInventory inv = new RoomInventory();
+        inv.addRoom("Single", 1);
+        inv.addRoom("Suite", 0);
 
-        history.add(new Reservation("R1", "Alice", "Single"));
-        history.add(new Reservation("R2", "Bob", "Suite"));
-        history.add(new Reservation("R3", "Charlie", "Single"));
+        BookingService service = new BookingService(inv);
 
-        BookingReportService report = new BookingReportService();
-
-        report.showAll(history.getAll());
-        report.summary(history.getAll());
+        service.process("Alice", "Single");   // success
+        service.process("Bob", "Suite");      // no availability
+        service.process("Charlie", "Deluxe"); // invalid type
     }
 }
